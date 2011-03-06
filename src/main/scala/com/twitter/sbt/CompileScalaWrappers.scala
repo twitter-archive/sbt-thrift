@@ -1,5 +1,6 @@
 package com.twitter.sbt
 
+import java.io.InputStreamReader
 import _root_.sbt._
 import org.jruby.embed._
 
