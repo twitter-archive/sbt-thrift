@@ -1,13 +1,13 @@
 package com.twitter.sbt
 
 import _root_.sbt._
-import java.io._
 import org.jruby.embed._
 
 /**
- * This code compiles scala wrappers for thrift.  I can't figure out how to test inside this package (recursive self sbt plugin tests?!),
- * so I created a sample twitter-local project called "quack", that has an extremely heinous thrift IDL, which exercises every
- * thrift type (with nesting and structs).  Grab it and compile it, to make sure this still works :).
+ * This code compiles scala wrappers for thrift. I can't figure out how to test inside this
+ * package (recursive self sbt plugin tests?!), so I created a sample twitter-local project
+ * called "quack", that has an extremely heinous thrift IDL, which exercises every thrift type
+ * (with nesting and structs).  Grab it and compile it, to make sure this still works :).
  */
 trait CompileScalaWrappers extends DefaultProject with CompileFinagleThrift {
   def scalaThriftTargetNamespace: String
