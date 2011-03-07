@@ -1,21 +1,21 @@
 package com.twitter.sbt
 
 import java.io.{File, FileOutputStream, BufferedOutputStream}
-
 import _root_.sbt._
 
-object CompileFinagleThrift {
+object CompileThriftFinagle {
   var cachedPath: Option[String] = None
 }
 
-trait CompileFinagleThrift
+trait CompileThriftFinagle
   extends DefaultProject
-  with CompileThrift
+  with CompileThriftJava
 {
-  private[this] val _thriftBin = CompileFinagleThrift.synchronized {
-    if (!CompileFinagleThrift.cachedPath.isDefined) {
-      // TODO: we don't discriminate between versions here (which we
-      // need to..).
+  import CompileThriftFinagle._
+
+  private[this] val _thriftBin = CompileThriftFinagle.synchronized {
+    if (!cachedPath.isDefined) {
+      // TODO: we don't discriminate between versions here (which we need to..).
       val binPath = System.getProperty("os.name") match {
         case "Mac OS X" => "thrift.osx10.6"
         case "Linux" => "thrift.linux"
@@ -40,10 +40,10 @@ trait CompileFinagleThrift
       val path = file.getAbsolutePath()
       (execTask { "chmod 0500 %s".format(path) }).run
 
-      CompileFinagleThrift.cachedPath = Some(path)
+      cachedPath = Some(path)
     }
 
-    CompileFinagleThrift.cachedPath.get
+    cachedPath.get
   }
 
   override def thriftBin = _thriftBin
