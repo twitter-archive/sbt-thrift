@@ -1,12 +1,10 @@
 package com.twitter.sbt
 
+import scala.collection.jcl
 import _root_.sbt._
 
-trait CompileThrift extends DefaultProject
-  with GeneratedSources
-  with Environmentalist
-{
-  def thriftBin = environment.get("THRIFT_BIN").getOrElse("thrift")
+trait CompileThriftJava extends DefaultProject with GeneratedSources {
+  def thriftBin = jcl.Map(System.getenv()).get("THRIFT_BIN").getOrElse("thrift")
 
   // thrift generation.
   def compileThriftAction(lang: String) = task {
