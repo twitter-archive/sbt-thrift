@@ -12,19 +12,25 @@ import org.jruby.embed._
  */
 trait CompileThriftScala extends DefaultProject with CompileThriftFinagle {
   def scalaThriftTargetNamespace: String
-  def rubyThriftNamespace: String
+
+  @Deprecated
+  def rubyThriftNamespace: String = throw new RuntimeException("Please override def rubyThriftNamespace or originalThriftNamespaces (latter preferred)")
+  @Deprecated
   def javaThriftNamespace = scalaThriftTargetNamespace + ".thrift"
 
-  lazy val autoCompileThriftScala = task {
+  // Preferred, because it handles compiling multiple namespaces
+  def originalThriftNamespaces = Map(rubyThriftNamespace->javaThriftNamespace)
+
+  lazy val autoCompileScalaThrift = task {
     val name = "/ruby/codegen.rb"
     val stream = getClass.getResourceAsStream(name)
     val reader = new InputStreamReader(stream)
     val container = new ScriptingContainer(LocalContextScope.SINGLETON, LocalVariableBehavior.TRANSIENT)
     container.runScriptlet(reader, "__TMP__")
     val module = container.runScriptlet("Codegen")
-    container.callMethod(module, "run", (outputPath / generatedRubyDirectoryName ##).toString,
-      (outputPath / generatedScalaDirectoryName ##).toString, javaThriftNamespace, rubyThriftNamespace, scalaThriftTargetNamespace)
-
+    for ((_rubyThriftNamespace, _javaThriftNamespace) <- originalThriftNamespaces) {
+      container.callMethod(module, "run", (outputPath / generatedRubyDirectoryName ##).toString, (outputPath / generatedScalaDirectoryName ##).toString, _javaThriftNamespace, _rubyThriftNamespace, scalaThriftTargetNamespace)
+    }
     None
   }.dependsOn(autoCompileThriftRuby)
 
@@ -32,6 +38,6 @@ trait CompileThriftScala extends DefaultProject with CompileThriftFinagle {
   def generatedScalaPath = outputPath / generatedScalaDirectoryName
 
   override def mainSourceRoots = super.mainSourceRoots +++ (outputPath / generatedScalaDirectoryName ##)
-  override def compileAction = super.compileAction dependsOn(autoCompileThriftScala)
+  override def compileAction = super.compileAction dependsOn(autoCompileScalaThrift)
   override def cleanAction = super.cleanAction dependsOn(cleanTask(generatedScalaPath))
 }

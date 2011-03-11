@@ -212,7 +212,7 @@ module Codegen
         def toThrift = new <%=obj%>ThriftAdapter(this)
       }
 
-      trait <%=obj%>Server extends com.twitter.admin.Service with <%=obj%>{
+      trait <%=obj%>Server extends Service with <%=obj%>{
         val log = Logger.get(getClass)
         
         def thriftCodec = ThriftServerFramedCodec()
