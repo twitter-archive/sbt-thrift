@@ -57,8 +57,9 @@ end
 
 # These functions are macros for common patterns in the generated scala.
 
-def type_of(field, thrifty = false)
+def type_of(field, thrifty = false, nested = false)
   return "Void" if field.nil?
+  j = thrifty && nested ? "java.lang." : ""
   base = case field[:type]
   when ::Thrift::Types::I32:
     if field[:enum_class]
@@ -66,24 +67,25 @@ def type_of(field, thrifty = false)
       $tnamespace + "." + last(field[:enum_class]) :
       last(field[:enum_class])
     else
+      # thrifty ? "java.lang.Integer" :
       "Int"
     end
   when ::Thrift::Types::STRUCT: thrifty ? $tnamespace + "." + last(field[:class]) : last(field[:class])
   when ::Thrift::Types::STRING:
     field[:binary] ? "java.nio.ByteBuffer" : "String"
-  when ::Thrift::Types::BOOL: "Boolean"
-  when ::Thrift::Types::I16: "Int"
-  when ::Thrift::Types::I64: "Long"
-  when ::Thrift::Types::BYTE: "Byte"
-  when ::Thrift::Types::DOUBLE: "Double"
+  when ::Thrift::Types::BOOL: "#{j}Boolean"
+  when ::Thrift::Types::I16: "#{j}Short"
+  when ::Thrift::Types::I64: "#{j}Long"
+  when ::Thrift::Types::BYTE: "#{j}Byte"
+  when ::Thrift::Types::DOUBLE: "#{j}Double"
   when ::Thrift::Types::SET:
-    tmp = "Set[#{type_of(field[:element], thrifty)}]"
+    tmp = "Set[#{type_of(field[:element], thrifty, true)}]"
     thrifty ? "J#{tmp}" : tmp
   when ::Thrift::Types::MAP:
-    tmp = "Map[#{type_of(field[:key], thrifty)}, #{type_of(field[:value], thrifty)}]"
+    tmp = "Map[#{type_of(field[:key], thrifty, true)}, #{type_of(field[:value], thrifty, true)}]"
     thrifty ? "J#{tmp}" : tmp
   when ::Thrift::Types::LIST:
-    tmp = "List[#{type_of(field[:element], thrifty)}]"
+    tmp = "List[#{type_of(field[:element], thrifty, true)}]"
     thrifty ? "J#{tmp}" : tmp
   else
     throw "unknown field type: #{field[:type]}"
@@ -91,22 +93,42 @@ def type_of(field, thrifty = false)
   field[:optional] ? "Option[#{base}]" : base
 end
 
-def unwrapper(f)
+def unwrapper(f, nested = false)
   pre = ""
   post = ""
   case f[:type]
+  when ::Thrift::Types::DOUBLE:
+    if nested
+      pre += "new java.lang.Double("
+      post += ")"
+    end
+  when ::Thrift::Types::I64:
+    if nested
+      pre += "new java.lang.Long("
+      post += ")"
+    end
+  when ::Thrift::Types::BYTE:
+    if nested
+      pre += "new java.lang.Byte("
+      post += ")"
+    end
+  when ::Thrift::Types::BOOL:
+    if nested
+      pre += "new java.lang.Boolean("
+      post += ")"
+    end
   when ::Thrift::Types::SET:
     pre += "asJavaSet(("
-    a, b = unwrapper(f[:element])
+    a, b = unwrapper(f[:element], true)
     post += ").map(x => #{a}x#{b}))"
   when ::Thrift::Types::LIST:
     pre += "asJavaList(("
-    a, b = unwrapper(f[:element])
+    a, b = unwrapper(f[:element], true)
     post += ").map(x => #{a}x#{b}))"
   when ::Thrift::Types::MAP:
     pre += "asJavaMap(("
-    a, b = unwrapper(f[:key])
-    c, d = unwrapper(f[:value])
+    a, b = unwrapper(f[:key], true)
+    c, d = unwrapper(f[:value], true)
     post += ").map(x => (#{a}x._1#{b}, #{c}x._2#{d})).toMap)"
   when ::Thrift::Types::I32:
     post += ".toThrift" if f[:enum_class]
@@ -116,14 +138,18 @@ def unwrapper(f)
   [pre, post]
 end
 
-def unwrap(f)
+def unwrap(f, inner = nil)
   pre, post = unwrapper(f)
-  @output << pre
-  yield
-  @output << post
+  if inner
+    pre + inner + post
+  else
+    @output << pre
+    yield
+    @output << post
+  end
 end
 
-def wrapper(f, name = nil)
+def wrapper(f, name = nil, nested = false)
   name ||= f[:name].camelize
   case f[:type]
   when ::Thrift::Types::I32:
@@ -132,9 +158,13 @@ def wrapper(f, name = nil)
     else
       name
     end
-  when ::Thrift::Types::LIST: "asScalaBuffer(#{name}).view.map(x=>#{wrapper(f[:element], "x")}).toList"
-  when ::Thrift::Types::SET: "Set(asScalaSet(#{name}).view.map(x=>#{wrapper(f[:element], "x")}).toSeq: _*)"
-  when ::Thrift::Types::MAP: "Map((#{name}).view.map(x=>(#{wrapper(f[:key], "x._1")}, #{wrapper(f[:value], "x._2")})).toSeq: _*)"
+  when ::Thrift::Types::BYTE: "#{name}.byteValue"
+  when ::Thrift::Types::I64: "#{name}.longValue"
+  when ::Thrift::Types::BOOL: "#{name}.booleanValue"
+  when ::Thrift::Types::DOUBLE: "#{name}.doubleValue"
+  when ::Thrift::Types::LIST: "asScalaBuffer(#{name}).view.map(x=>#{wrapper(f[:element], "x", true)}).toList"
+  when ::Thrift::Types::SET: "Set(asScalaSet(#{name}).view.map(x=>#{wrapper(f[:element], "x", true)}).toSeq: _*)"
+  when ::Thrift::Types::MAP: "Map((#{name}).view.map(x=>(#{wrapper(f[:key], "x._1", true)}, #{wrapper(f[:value], "x._2", true)})).toSeq: _*)"
   when ::Thrift::Types::STRUCT: "new #{last(f[:class])}(#{name})"
   else
     name
@@ -156,29 +186,35 @@ module Codegen
     # Hooray, we generate the scala with ERb
     service_template_string = '
       package <%=namespace %>
-
+      
       import java.net.InetSocketAddress
       import java.util.{List => JList, Map => JMap, Set => JSet}
       import scala.collection.mutable
-      import scala.collection.JavaConversions._
       import com.twitter.conversions.time._
       import com.twitter.finagle.builder._
       import com.twitter.finagle.stats._
+      
+      import scala.collection.JavaConversions._
       import com.twitter.finagle.thrift._
+      import org.apache.thrift.protocol._
       import com.twitter.logging.Logger
       import com.twitter.ostrich.admin.Service
       import com.twitter.util._
-      import org.apache.thrift.protocol._
+
 
       // Autogenerated
 
-      trait <%=obj%> extends Service {
+      trait <%=obj%> {
         <% for m in methods do %>
           def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>): Future[<%=type_of(m.retval)%>]
         <% end %>
 
         def toThrift = new <%=obj%>ThriftAdapter(this)
+      }
 
+      trait <%=obj%>Server extends com.twitter.admin.Service with <%=obj%>{
+        val log = Logger.get(getClass)
+        
         def thriftCodec = ThriftServerFramedCodec()
         val thriftProtocolFactory = new TBinaryProtocol.Factory()
         val thriftPort: Int
@@ -187,7 +223,7 @@ module Codegen
         var server: Server = null
 
         def start = {
-          val thriftImpl = new thrift.<%=obj%>.Service(toThrift, thriftProtocolFactory)
+          val thriftImpl = new <%=tnamespace%>.<%=obj%>.Service(toThrift, thriftProtocolFactory)
           val serverAddr = new InetSocketAddress(thriftPort)
           server = ServerBuilder().codec(thriftCodec).name(serverName).reportTo(new OstrichStatsReceiver).bindTo(serverAddr).build(thriftImpl)
         }
@@ -197,12 +233,11 @@ module Codegen
             server.close(0.seconds)
           }
         }
-
       }
 
       class <%=obj%>ThriftAdapter(val <%=obj.to_s.camelize%>: <%=obj%>) extends <%=tnamespace%>.<%=obj%>.ServiceIface {
         val log = Logger.get(getClass)
-
+         
         <% for m in methods do %>
           def <%=m.name.downcase%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f, true)}.join(", ") %>) = <%="try" if $exception %> {
             <%=obj.to_s.camelize%>.<%=m.name.camelize%>(<%=m.args.map{|f| wrapper(f) }.join(", ")%>)
@@ -215,12 +250,29 @@ module Codegen
             } catch {
               case t: Throwable => {
                 log.error(t, "Uncaught error: %s", t)
+                
                 throw new <%=tnamespace%>.<%=last $exception%>(t.getMessage)
               }
           <% end %>
           }
         <% end %>
       }
+
+      class <%=obj%>ClientAdapter(val <%=obj.to_s.camelize%>: <%=tnamespace%>.<%=obj%>.ServiceIface) extends <%=obj%> {
+        val log = Logger.get(getClass)
+
+        <% for m in methods do %>
+          def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
+            <%=obj.to_s.camelize%>.<%=m.name.downcase%>(<%=m.args.map{|f| unwrap(f, f[:name]).camelize }.join(", ")%>)
+            <% if m.retval %>
+              .map { retval =>
+                <%=wrapper(m.retval, "retval") %>
+              }
+            <% end %>
+          }
+        <% end %>
+      }
+
     '
     enum_template_string = '
       package <%=namespace %>
@@ -263,7 +315,7 @@ module Codegen
 
       // Autogenerated
 
-      case class <%=obj%>(<%=fields.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>)<%=" extends Exception" if is_exception %> {
+      case class <%=obj%>(<%=fields.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) <%="extends Exception" if is_exception %>{
         def this(thrifty: <%=tnamespace%>.<%=obj%>) = this(
           <% for f in fields do %>
             <%="," unless f == fields.first %>
