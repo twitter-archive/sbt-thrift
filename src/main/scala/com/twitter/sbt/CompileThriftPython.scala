@@ -3,7 +3,7 @@ package com.twitter.sbt
 import _root_.sbt._
 
 
-trait CompileThriftRuby extends CompileThrift {
+trait CompileThriftPython extends CompileThrift {
   lazy val compileThriftPython =
     compileThriftAction("py:new_style") describedAs("Compile thrift into python")
 
@@ -20,6 +20,6 @@ trait CompileThriftRuby extends CompileThrift {
 }
 
 trait CompileThriftPythonTwisted extends CompileThriftPython {
-  lazy val compileThriftPython =
+  override lazy val compileThriftPython =
     compileThriftAction("py:new_style,twisted") describedAs("Compile thrift into twisted python")
 }

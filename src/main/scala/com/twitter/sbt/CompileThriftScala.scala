@@ -10,7 +10,7 @@ import org.jruby.embed._
  * called "quack", that has an extremely heinous thrift IDL, which exercises every thrift type
  * (with nesting and structs).  Grab it and compile it, to make sure this still works :).
  */
-trait CompileThriftScala extends DefaultProject with with CompileThriftRuby with CompileThriftFinagle {
+trait CompileThriftScala extends DefaultProject with CompileThriftRuby with CompileThriftFinagle {
   def scalaThriftTargetNamespace: String
 
   @Deprecated
