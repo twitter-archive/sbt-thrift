@@ -5,6 +5,6 @@ compile phase. Choose one of these three:
 - `CompileThriftFinagle` - create the java bindings with alternative async interfaces for finagle, in `target/gen-java/`
 - `CompileThriftJava` - create just the java bindings, in `target/gen-java/`
 - `CompileThriftPython` - create just the python bindings, in `target/gen-py/`
-- `CompileThriftPythonTwisted` - create just the python bindings with twisted supprot, in `target/gen-py/`
+- `CompileThriftPythonTwisted` - create just the python bindings with twisted support, in `target/gen-py/`
 - `CompileThriftRuby` - create just the ruby bindings, in `target/gen-ruby/`
 - `CompileThriftScala` - do `CompileThriftFinagle` and `CompileThriftRuby`, but also generate scala wrappers and implicit conversions in `target/gen-scala/`
