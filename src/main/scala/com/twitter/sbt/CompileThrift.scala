@@ -17,8 +17,8 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
     import Process._
     outputPath.asFile.mkdirs()
     val tasks = thriftSources.getPaths.map { path =>
-      execTask { "%s --gen %s -o %s %s".format(thriftBin,lang, outputPath.absolutePath, path) }
+      execTask { "%s --gen %s -o %s %s".format(thriftBin, lang, outputPath.absolutePath, path) }
     }
     if (tasks.isEmpty) None else tasks.reduceLeft { _ && _ }.run
-  }
+  } describedAs("Compile thrift into %s".format(lang))
 }

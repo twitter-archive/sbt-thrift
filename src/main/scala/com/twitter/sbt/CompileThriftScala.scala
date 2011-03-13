@@ -29,7 +29,10 @@ trait CompileThriftScala extends DefaultProject with CompileThriftRuby with Comp
     container.runScriptlet(reader, "__TMP__")
     val module = container.runScriptlet("Codegen")
     for ((_rubyThriftNamespace, _javaThriftNamespace) <- originalThriftNamespaces) {
-      container.callMethod(module, "run", (outputPath / generatedRubyDirectoryName ##).toString, (outputPath / generatedScalaDirectoryName ##).toString, _javaThriftNamespace, _rubyThriftNamespace, scalaThriftTargetNamespace)
+      container.callMethod(module, "run",
+        (outputPath / generatedRubyDirectoryName ##).toString,
+        (outputPath / generatedScalaDirectoryName ##).toString,
+        _javaThriftNamespace, _rubyThriftNamespace, scalaThriftTargetNamespace)
     }
     None
   }.dependsOn(autoCompileThriftRuby)
