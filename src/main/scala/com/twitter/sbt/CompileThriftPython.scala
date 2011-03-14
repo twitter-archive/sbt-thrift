@@ -8,9 +8,9 @@ trait CompileThriftPython extends CompileThrift {
   lazy val compileThriftPython = compileThriftAction(pythonThriftSpec)
 
   lazy val autoCompileThriftPython = task {
-    if (autoCompileThriftEnabled)
+    if (autoCompileThriftEnabled) {
       compileThriftPython.run
-    else {
+    } else {
       log.info("%s: not auto-compiling thrift-python; you may need to run compile-thrift-python manually".format(name))
       None
     }

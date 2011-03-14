@@ -7,9 +7,9 @@ trait CompileThriftRuby extends CompileThrift {
   lazy val compileThriftRuby = compileThriftAction("rb")
 
   lazy val autoCompileThriftRuby = task {
-    if (autoCompileThriftEnabled)
+    if (autoCompileThriftEnabled) {
       compileThriftRuby.run
-    else {
+    } else {
       log.info("%s: not auto-compiling thrift-ruby; you may need to run compile-thrift-java manually".format(name))
       None
     }
