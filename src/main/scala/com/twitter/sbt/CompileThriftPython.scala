@@ -4,8 +4,8 @@ import _root_.sbt._
 
 trait CompileThriftPython extends CompileThrift {
   val compileThriftPythonTwistedEnabled = false
-  val thriftSpec = if (compileThriftPythonTwistedEnabled) "py:new_style,twisted" else "py:new_style"
-  lazy val compileThriftPython = compileThriftAction(thriftSpec)
+  val pythonThriftSpec = if (compileThriftPythonTwistedEnabled) "py:new_style,twisted" else "py:new_style"
+  lazy val compileThriftPython = compileThriftAction(pythonThriftSpec)
 
   lazy val autoCompileThriftPython = task {
     if (autoCompileThriftEnabled)
