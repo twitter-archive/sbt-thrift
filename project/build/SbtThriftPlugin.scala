@@ -1,18 +1,14 @@
-import java.io.{File, FileReader, FileWriter}
-import java.util.{Date, Properties}
-import _root_.sbt._
+import sbt._
+import com.twitter.sbt._
 
-// TODO: somehow link on the real SubversionPublisher in the main source tree
-class SbtThriftPlugin(info: ProjectInfo) extends PluginProject(info) with SubversionPublisher with IdeaProject {
+class SbtThriftPlugin(info: ProjectInfo) extends PluginProject(info)
+    with DefaultRepos with SubversionPublisher with IdeaProject {
   override def disableCrossPaths = true
 
-  override def subversionRepository = Some("http://svn.local.twitter.com/maven-public")
-
-  val ivySvn = "ivysvn" % "ivysvn" % "2.1.0" from "http://maven.twttr.com/ivysvn/ivysvn/2.1.0/ivysvn-2.1.0.jar"
   val jruby = "org.jruby" % "jruby-complete" % "1.6.0.RC2"
 
+  override def subversionRepository = Some("http://svn.local.twitter.com/maven-public")
   override def managedStyle = ManagedStyle.Maven
-  def artifactoryRoot = "http://artifactory.local.twitter.com"
   def snapshotDeployRepo = "libs-snapshots-local"
   def releaseDeployRepo = "libs-releases-local"
 
