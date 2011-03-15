@@ -2,7 +2,7 @@ import sbt._
 import com.twitter.sbt._
 
 class SbtThriftPlugin(info: ProjectInfo) extends PluginProject(info)
-    with DefaultRepos with SubversionPublisher with IdeaProject {
+    with StandardManagedProject with DefaultRepos with SubversionPublisher with IdeaProject {
   override def disableCrossPaths = true
 
   val jruby = "org.jruby" % "jruby-complete" % "1.6.0.RC2"
