@@ -263,7 +263,7 @@ module Codegen
 
         <% for m in methods do %>
           def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
-            <%=obj.to_s.camelize%>.<%=m.name.downcase%>(<%=m.args.map{|f| unwrap(f, f[:name]).camelize }.join(", ")%>)
+            <%=obj.to_s.camelize%>.<%=m.name.downcase%>(<%=m.args.map{|f| unwrap(f, f[:name].camelize) }.join(", ")%>)
             <% if m.retval %>
               .map { retval =>
                 <%=wrapper(m.retval, "retval") %>
