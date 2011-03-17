@@ -160,10 +160,9 @@ def wrapper(f, name = nil, nested = false)
     if f[:enum_class]
       "#{last(f[:enum_class])}(#{name})"
     else
-      name
+      "#{name}.intValue"
     end
   when ::Thrift::Types::BYTE: "#{name}.byteValue"
-  when ::Thrift::Types::I32: "#{name}.intValue"
   when ::Thrift::Types::I64: "#{name}.longValue"
   when ::Thrift::Types::BOOL: "#{name}.booleanValue"
   when ::Thrift::Types::DOUBLE: "#{name}.doubleValue"
