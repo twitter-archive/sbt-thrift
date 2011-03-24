@@ -20,8 +20,8 @@ trait CompileThriftScala extends DefaultProject with CompileThriftRuby with Comp
 
   // Preferred, because it handles compiling multiple namespaces
   def originalThriftNamespaces = Map(rubyThriftNamespace->javaThriftNamespace)
-
-  lazy val autoCompileScalaThrift = task {
+  
+  lazy val compileThriftScala = task {
     val name = "/ruby/codegen.rb"
     val stream = getClass.getResourceAsStream(name)
     val reader = new InputStreamReader(stream)
@@ -33,6 +33,15 @@ trait CompileThriftScala extends DefaultProject with CompileThriftRuby with Comp
         (outputPath / generatedRubyDirectoryName ##).toString,
         (outputPath / generatedScalaDirectoryName ##).toString,
         _javaThriftNamespace, _rubyThriftNamespace, scalaThriftTargetNamespace)
+    }
+    None
+  }
+
+  lazy val autoCompileScalaThrift = task {
+    if (autoCompileThriftEnabled) {
+      compileThriftScala.run
+    } else {
+      log.info("%s: not auto-compiling thrift-scala; you may need to run compile-thrift-scala manually".format(name))
     }
     None
   }.dependsOn(autoCompileThriftRuby)

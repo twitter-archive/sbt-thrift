@@ -53,6 +53,10 @@ class String
       self[0].chr.downcase + camelize(self)[1..-1]
     end
   end
+  
+  def capitalize
+    [0..0].upcase + [1..-1]
+  end
 end
 
 # These functions are macros for common patterns in the generated scala.
@@ -160,10 +164,9 @@ def wrapper(f, name = nil, nested = false)
     if f[:enum_class]
       "#{last(f[:enum_class])}(#{name})"
     else
-      name
+      "#{name}.intValue"
     end
   when ::Thrift::Types::BYTE: "#{name}.byteValue"
-  when ::Thrift::Types::I32: "#{name}.intValue"
   when ::Thrift::Types::I64: "#{name}.longValue"
   when ::Thrift::Types::BOOL: "#{name}.booleanValue"
   when ::Thrift::Types::DOUBLE: "#{name}.doubleValue"
@@ -246,22 +249,22 @@ module Codegen
         val log = Logger.get(getClass)
 
         <% for m in methods do %>
-          def <%=m.name.downcase%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f, true)}.join(", ") %>) = <%="try" if $exception %> {
+          def <%=m.name.downcase%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f, true)}.join(", ") %>) = {
             <%=obj.to_s.camelize%>.<%=m.name.camelize%>(<%=m.args.map{|f| wrapper(f) }.join(", ")%>)
             <% if m.retval %>
-              .map { retval =>
+              .map[<%=type_of(m.retval, true, true)%>] { retval =>
                 <% unwrap(m.retval) do %>retval<%end%>
               }
             <% end %>
-          <% if $exception %>
-            } catch {
-              case t: org.apache.thrift.TBase[_,_] => throw(t)
-              case t: Throwable => {
-                log.error(t, "Uncaught error: %s", t)
-
-                throw new <%=tnamespace%>.<%=last $exception%>(t.getMessage)
+            <% if $exception %>
+              .handle {
+                case t: org.apache.thrift.TBase[_,_] => throw(t)
+                case t: Throwable => {
+                  log.error(t, "Uncaught error: %s", t)
+                  throw new <%=tnamespace%>.<%=last $exception%>(t.getMessage)
+                }
               }
-          <% end %>
+            <% end %>
           }
         <% end %>
       }
@@ -273,8 +276,17 @@ module Codegen
           def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
             <%=obj.to_s.camelize%>.<%=m.name.downcase%>(<%=m.args.map{|f| unwrap(f, f[:name].camelize) }.join(", ")%>)
             <% if m.retval %>
-              .map { retval =>
+              .map[<%=type_of(m.retval)%>] { retval =>
                 <%=wrapper(m.retval, "retval") %>
+              }
+            <% end %>
+            <% if $exception %>
+              .handle {
+                case t: org.apache.thrift.TBase[_,_] => throw(t)
+                case t: Throwable => {
+                  log.error(t, "Uncaught error: %s", t)
+                  throw new <%=tnamespace%>.<%=last $exception%>(t.getMessage)
+                }
               }
             <% end %>
           }
