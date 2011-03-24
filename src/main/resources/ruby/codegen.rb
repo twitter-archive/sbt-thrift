@@ -55,7 +55,7 @@ class String
   end
   
   def capitalize
-    [0..0].upcase + [1..-1]
+    self[0..0].upcase + self[1..-1]
   end
 end
 
