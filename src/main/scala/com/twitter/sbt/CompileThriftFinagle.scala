@@ -18,7 +18,12 @@ trait CompileThriftFinagle
       // TODO: we don't discriminate between versions here (which we need to..).
       val binPath = System.getProperty("os.name") match {
         case "Mac OS X" => "thrift.osx10.6"
-        case "Linux" => "thrift.linux"
+        case "Linux" => System.getProperty("os.arch") match {
+          case "i386" => "thrift.linux32"
+          case "amd64" => "thrift.linux64"
+          case arch => throw new Exception(
+            "No thrift linux binary for %s, talk to william@twitter.com".format(arch))
+        }
         case unknown => throw new Exception(
           "No thrift binary for %s, talk to marius@twitter.com".format(unknown))
       }
