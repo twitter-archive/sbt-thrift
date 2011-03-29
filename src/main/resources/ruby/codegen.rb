@@ -55,7 +55,7 @@ class String
   end
   
   def capitalize
-    self[0..0].upcase + self[1..-1]
+    self[0].chr.upcase + self[1..-1]
   end
 end
 
@@ -419,11 +419,11 @@ module Codegen
     root.constants.each do |name|
       obj = root.const_get(name)
       if obj.const_defined?(:Client)
-        methods = obj.constants.map{|c| c.to_s[/(.*)_args$/, 1] }.compact.map(&:downcase).map {|name|
+        methods = obj.constants.map{|c| c.to_s[/(.*)_args$/, 1]}.compact.map {|name|
           out = MStruct.new
           out.name = name
-          out.args = obj.const_get(name.capitalize + "_args").new.struct_fields.to_a.sort_by{|f| f.first}.map{|f| f.last }
-          out.retval = obj.const_get(name.capitalize + "_result").new.struct_fields[0]
+          out.args = obj.const_get(name + "_args").new.struct_fields.to_a.sort_by{|f| f.first}.map{|f| f.last }
+          out.retval = obj.const_get(name + "_result").new.struct_fields[0]
           out
         }
         obj = last obj
