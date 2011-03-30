@@ -32,14 +32,15 @@ trait CompileThriftFinagle
       val file = File.createTempFile("thrift", "scala")
       file.deleteOnExit()
       val fos = new BufferedOutputStream(new FileOutputStream(file), 1<<20)
-
-      var byte = stream.read()
-      while (byte != -1) {
-        fos.write(byte)
-        byte = stream.read()
+      try {
+        var byte = stream.read()
+        while (byte != -1) {
+          fos.write(byte)
+          byte = stream.read()
+        }
+      } finally {
+        fos.close()
       }
-
-      fos.flush()
 
       import Process._
       val path = file.getAbsolutePath()
