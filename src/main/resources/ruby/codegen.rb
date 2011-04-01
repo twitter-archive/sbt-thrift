@@ -247,6 +247,7 @@ module Codegen
 
       class <%=obj%>ThriftAdapter(val <%=obj.to_s.camelize%>: <%=obj%>) extends <%=tnamespace%>.<%=obj%>.ServiceIface {
         val log = Logger.get(getClass)
+        def this() = this(null)
 
         <% for m in methods do %>
           def <%=m.name%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f, true)}.join(", ") %>) = {
@@ -271,6 +272,7 @@ module Codegen
 
       class <%=obj%>ClientAdapter(val <%=obj.to_s.camelize%>: <%=tnamespace%>.<%=obj%>.ServiceIface) extends <%=obj%> {
         val log = Logger.get(getClass)
+        def this() = this(null)
 
         <% for m in methods do %>
           def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
