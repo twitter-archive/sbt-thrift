@@ -216,7 +216,7 @@ module Codegen
         implicit def voidUnit(f: Future[_]): Future[java.lang.Void] = f.map(x=>null)
 
         <% for m in methods do %>
-          def <%=m.name%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>): Future[<%=type_of(m.retval)%>]
+          def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>): Future[<%=type_of(m.retval)%>]
         <% end %>
 
         def toThrift = new <%=obj%>ThriftAdapter(this)
@@ -247,10 +247,11 @@ module Codegen
 
       class <%=obj%>ThriftAdapter(val <%=obj.to_s.camelize%>: <%=obj%>) extends <%=tnamespace%>.<%=obj%>.ServiceIface {
         val log = Logger.get(getClass)
+        def this() = this(null)
 
         <% for m in methods do %>
           def <%=m.name%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f, true)}.join(", ") %>) = {
-            <%=obj.to_s.camelize%>.<%=m.name%>(<%=m.args.map{|f| wrapper(f) }.join(", ")%>)
+            <%=obj.to_s.camelize%>.<%=m.name.camelize%>(<%=m.args.map{|f| wrapper(f) }.join(", ")%>)
             <% if m.retval %>
               .map[<%=type_of(m.retval, true, true)%>] { retval =>
                 <% unwrap(m.retval) do %>retval<%end%>
@@ -271,9 +272,10 @@ module Codegen
 
       class <%=obj%>ClientAdapter(val <%=obj.to_s.camelize%>: <%=tnamespace%>.<%=obj%>.ServiceIface) extends <%=obj%> {
         val log = Logger.get(getClass)
+        def this() = this(null)
 
         <% for m in methods do %>
-          def <%=m.name%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
+          def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
             <%=obj.to_s.camelize%>.<%=m.name%>(<%=m.args.map{|f| unwrap(f, f[:name].camelize) }.join(", ")%>)
             <% if m.retval %>
               .map[<%=type_of(m.retval)%>] { retval =>
