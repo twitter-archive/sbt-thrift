@@ -55,7 +55,7 @@ class String
   end
   
   def capitalize
-    self[0..0].upcase + self[1..-1]
+    self[0].chr.upcase + self[1..-1]
   end
 end
 
@@ -216,7 +216,7 @@ module Codegen
         implicit def voidUnit(f: Future[_]): Future[java.lang.Void] = f.map(x=>null)
 
         <% for m in methods do %>
-          def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>): Future[<%=type_of(m.retval)%>]
+          def <%=m.name%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>): Future[<%=type_of(m.retval)%>]
         <% end %>
 
         def toThrift = new <%=obj%>ThriftAdapter(this)
@@ -249,8 +249,8 @@ module Codegen
         val log = Logger.get(getClass)
 
         <% for m in methods do %>
-          def <%=m.name.downcase%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f, true)}.join(", ") %>) = {
-            <%=obj.to_s.camelize%>.<%=m.name.camelize%>(<%=m.args.map{|f| wrapper(f) }.join(", ")%>)
+          def <%=m.name%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f, true)}.join(", ") %>) = {
+            <%=obj.to_s.camelize%>.<%=m.name%>(<%=m.args.map{|f| wrapper(f) }.join(", ")%>)
             <% if m.retval %>
               .map[<%=type_of(m.retval, true, true)%>] { retval =>
                 <% unwrap(m.retval) do %>retval<%end%>
@@ -261,7 +261,7 @@ module Codegen
                 case t: org.apache.thrift.TBase[_,_] => throw(t)
                 case t: Throwable => {
                   log.error(t, "Uncaught error: %s", t)
-                  throw new <%=tnamespace%>.<%=last $exception%>(t.getMessage)
+                  throw new org.apache.thrift.TApplicationException(t.getMessage)
                 }
               }
             <% end %>
@@ -273,8 +273,8 @@ module Codegen
         val log = Logger.get(getClass)
 
         <% for m in methods do %>
-          def <%=m.name.camelize%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
-            <%=obj.to_s.camelize%>.<%=m.name.downcase%>(<%=m.args.map{|f| unwrap(f, f[:name].camelize) }.join(", ")%>)
+          def <%=m.name%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
+            <%=obj.to_s.camelize%>.<%=m.name%>(<%=m.args.map{|f| unwrap(f, f[:name].camelize) }.join(", ")%>)
             <% if m.retval %>
               .map[<%=type_of(m.retval)%>] { retval =>
                 <%=wrapper(m.retval, "retval") %>
@@ -285,7 +285,7 @@ module Codegen
                 case t: org.apache.thrift.TBase[_,_] => throw(t)
                 case t: Throwable => {
                   log.error(t, "Uncaught error: %s", t)
-                  throw new <%=tnamespace%>.<%=last $exception%>(t.getMessage)
+                  throw new org.apache.thrift.TApplicationException(t.getMessage)
                 }
               }
             <% end %>
@@ -419,16 +419,20 @@ module Codegen
     root.constants.each do |name|
       obj = root.const_get(name)
       if obj.const_defined?(:Client)
-        methods = obj.constants.map{|c| c.to_s[/(.*)_args$/, 1] }.compact.map(&:downcase).map {|name|
-          out = MStruct.new
-          out.name = name
-          out.args = obj.const_get(name.capitalize + "_args").new.struct_fields.to_a.sort_by{|f| f.first}.map{|f| f.last }
-          out.retval = obj.const_get(name.capitalize + "_result").new.struct_fields[0]
-          out
+        methods = obj.const_get(:Client).instance_methods.map {|m| m.to_s[/recv_(.*)$/, 1] }.compact.map {|name|
+          if name
+            out = MStruct.new
+            out.name = name
+            out.args = obj.const_get(name.capitalize + "_args").new.struct_fields.to_a.sort_by{|f| f.first}.map{|f| f.last }
+            out.retval = obj.const_get(name.capitalize + "_result").new.struct_fields[0]
+            out
+          end
         }
         obj = last obj
         template = ERB.new(service_template_string, nil, nil, "@output")
-        File.open("#{output}/#{obj}.scala", "w") {|f| f.print(template.result(binding)) }
+        File.open("#{output}/#{obj}.scala", "w") {|f|
+          f.print(template.result(binding))
+        }
       end
     end
   end
