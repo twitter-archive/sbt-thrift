@@ -20,7 +20,9 @@ trait CompileThriftScala extends DefaultProject with CompileThriftRuby with Comp
 
   // Preferred, because it handles compiling multiple namespaces
   def originalThriftNamespaces = Map(rubyThriftNamespace->javaThriftNamespace)
-  
+
+  def idiomizeMethods = false
+
   lazy val compileThriftScala = task {
     val name = "/ruby/codegen.rb"
     val stream = getClass.getResourceAsStream(name)
@@ -32,7 +34,8 @@ trait CompileThriftScala extends DefaultProject with CompileThriftRuby with Comp
       container.callMethod(module, "run",
         (outputPath / generatedRubyDirectoryName ##).toString,
         (outputPath / generatedScalaDirectoryName ##).toString,
-        _javaThriftNamespace, _rubyThriftNamespace, scalaThriftTargetNamespace)
+        _javaThriftNamespace, _rubyThriftNamespace, scalaThriftTargetNamespace,
+        new java.lang.Boolean(idiomizeMethods))
     }
     None
   }
