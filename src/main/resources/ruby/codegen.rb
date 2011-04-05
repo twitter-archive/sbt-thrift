@@ -53,7 +53,7 @@ class String
       self[0].chr.downcase + camelize(self)[1..-1]
     end
   end
-  
+
   def capitalize
     self[0].chr.upcase + self[1..-1]
   end
@@ -186,10 +186,11 @@ end
 MStruct = Struct.new(:name, :args, :retval)
 
 module Codegen
-  def run(input, output, tnamespace, rnamespace, namespace)
+  def run(input, output, tnamespace, rnamespace, namespace, exception_class)
     output = File.expand_path(File.join(output, *namespace.split(".")))
     mkdir_p output
     $tnamespace = tnamespace
+    $exception_class = exception_class.empty? ? nil : exception_class
 
     # Hooray, we generate the scala with ERb
     service_template_string = '
@@ -257,12 +258,12 @@ module Codegen
                 <% unwrap(m.retval) do %>retval<%end%>
               }
             <% end %>
-            <% if $exception %>
+            <% if $exception_class %>
               .handle {
                 case t: org.apache.thrift.TBase[_,_] => throw(t)
                 case t: Throwable => {
                   log.error(t, "Uncaught error: %s", t)
-                  throw new org.apache.thrift.TApplicationException(t.getMessage)
+                  throw new <%=$exception_class%>(t.getMessage)
                 }
               }
             <% end %>
@@ -280,15 +281,6 @@ module Codegen
             <% if m.retval %>
               .map[<%=type_of(m.retval)%>] { retval =>
                 <%=wrapper(m.retval, "retval") %>
-              }
-            <% end %>
-            <% if $exception %>
-              .handle {
-                case t: org.apache.thrift.TBase[_,_] => throw(t)
-                case t: Throwable => {
-                  log.error(t, "Uncaught error: %s", t)
-                  throw new org.apache.thrift.TApplicationException(t.getMessage)
-                }
               }
             <% end %>
           }
@@ -441,6 +433,6 @@ module Codegen
   extend self
 end
 
-if ARGV.length == 5
+if ARGV.length == 6
   Codegen::run(*ARGV)
 end
