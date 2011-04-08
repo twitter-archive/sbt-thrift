@@ -21,7 +21,7 @@ trait CompileThriftScala extends DefaultProject with CompileThriftRuby with Comp
   // Preferred, because it handles compiling multiple namespaces
   def originalThriftNamespaces = Map(rubyThriftNamespace->javaThriftNamespace)
 
-  def idiomizeMethods = false
+  def idiomizeMethods = true
 
   lazy val compileThriftScala = task {
     val name = "/ruby/codegen.rb"
