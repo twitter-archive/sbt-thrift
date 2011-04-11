@@ -23,7 +23,7 @@ project specifications must provide a list of `ThriftNamespace`s, as follows:
 
     import sbt._
     import com.twitter.sbt._
-    
+
     /**
      * Describes a scala project that relies on two Thrift IDLs, to be compiled to two different namespaces.
      */
@@ -35,7 +35,7 @@ project specifications must provide a list of `ThriftNamespace`s, as follows:
       def finagleCore = "com.twitter" % "finagle-core" % finagleVersion
       def finagleThrift = "com.twitter" % "finagle-thrift" % finagleVersion
       def finagleOstrich = "com.twitter" % "finagle-ostrich4" % finagleVersion
-      
+
       def thriftNamespaces =
         new ThriftNamespace("Calculator", "gov.irs.taxes.calculator") // Java namespace inferred to be gov.irs.taxes.calculator.thrift
 	:: new ThriftNamespace( "EZFile", "gov.irs.taxes.ezfile.nondefaultthriftnamespace", "gov.irs.taxes.ezfile")
