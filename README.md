@@ -14,11 +14,11 @@ Scala Thrift Generation
 -----------------------
 
 `CompileThriftScala` implements a way of generating a Scala-wrapper for a
-[Finale](http://twitter.github.com/finagle) Thrift service by using JRuby to
+[Finagle](http://twitter.github.com/finagle) Thrift service by using JRuby to
 inspect thrift-generated ruby code.  It is therefore necessary for input thrift
 files to specify ruby and java namespace rules.  If the java namespace is not
 specified in a `CompileThriftScala` object, it is assumed to be
-<t><i>scala-namespace</i>.thrift</t>.  In order to specify these namespaces,
+`_scala-namespace_.thrift`.  In order to specify these namespaces,
 project specifications must provide a list of `ThriftNamespace`s, as follows:
 
     import sbt._
