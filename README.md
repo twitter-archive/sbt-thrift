@@ -14,16 +14,16 @@ Scala Thrift Generation
 -----------------------
 
 `CompileThriftScala` implements a way of generating a Scala-wrapper for a
-[Finale](http://twitter.github.com/finagle) Thrift service by using JRuby to
+[Finagle](http://twitter.github.com/finagle) Thrift service by using JRuby to
 inspect thrift-generated ruby code.  It is therefore necessary for input thrift
 files to specify ruby and java namespace rules.  If the java namespace is not
 specified in a `CompileThriftScala` object, it is assumed to be
-<t><i>scala-namespace</i>.thrift</t>.  In order to specify these namespaces,
+`_scala-namespace_.thrift`.  In order to specify these namespaces,
 project specifications must provide a list of `ThriftNamespace`s, as follows:
 
     import sbt._
     import com.twitter.sbt._
-
+    
     /**
      * Describes a scala project that relies on two Thrift IDLs, to be compiled to two different namespaces.
      */
@@ -35,7 +35,7 @@ project specifications must provide a list of `ThriftNamespace`s, as follows:
       def finagleCore = "com.twitter" % "finagle-core" % finagleVersion
       def finagleThrift = "com.twitter" % "finagle-thrift" % finagleVersion
       def finagleOstrich = "com.twitter" % "finagle-ostrich4" % finagleVersion
-
+    
       def thriftNamespaces =
         new ThriftNamespace("Calculator", "gov.irs.taxes.calculator") // Java namespace inferred to be gov.irs.taxes.calculator.thrift
 	:: new ThriftNamespace( "EZFile", "gov.irs.taxes.ezfile.nondefaultthriftnamespace", "gov.irs.taxes.ezfile")
