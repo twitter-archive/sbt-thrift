@@ -24,6 +24,11 @@ trait CompileThriftFinagle
           case arch => throw new Exception(
             "No thrift linux binary for %s, talk to william@twitter.com".format(arch))
         }
+        case "FreeBSD" => System.getProperty("os.arch") match {
+          case "amd64" => "thrift.bsd64"
+          case arch => throw new Exception(
+            "No thrift BSD binary for %s, talk to brandon@twitter.com".format(arch))
+        }
         case unknown => throw new Exception(
           "No thrift binary for %s, talk to marius@twitter.com".format(unknown))
       }
