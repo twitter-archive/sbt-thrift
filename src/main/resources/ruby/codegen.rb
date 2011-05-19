@@ -286,21 +286,28 @@ class <%=obj%>ClientAdapter(val <%=obj.to_s.camelize%>: <%=tnamespace%>.<%=obj%>
 
   <% for m in methods do %>
     def <%=idiomize(m)%>(<%=m.args.map{|f| f[:name].camelize + ": " + type_of(f)}.join(", ") %>) = {
-      <%=obj.to_s.camelize%>.<%=m.name%>(<%=m.args.map{|f| unwrap(f, f[:name].camelize) }.join(", ")%>)
-      <% if m.retval %>
-        .map[<%=type_of(m.retval)%>] { retval =>
-          <%=wrapper(m.retval, "retval") %>
-        }
-      <% end %>
-      <% if $exception_class %>
-        .handle {
-          case t: <%=$exception_class%> => throw(t)
-          case t: Throwable => {
-            log.error(t, "Uncaught error: %s", t)
-            throw new <%=$exception_class%>(t.getMessage)
+      try {
+        <%=obj.to_s.camelize%>.<%=m.name%>(<%=m.args.map{|f| unwrap(f, f[:name].camelize) }.join(", ")%>)
+        <% if m.retval %>
+          .map[<%=type_of(m.retval)%>] { retval =>
+            <%=wrapper(m.retval, "retval") %>
           }
+        <% end %>
+        <% if $exception_class %>
+          .handle {
+            case t: <%=$exception_class%> => throw(t)
+            case t: Throwable => {
+              log.error(t, "Uncaught error: %s", t)
+              throw new <%=$exception_class%>(t.getMessage)
+            }
+          }
+        <% end %>
+      } catch {
+        case t: Throwable => {
+          log.error(t, "Uncaught error: %s", t)
+          throw(t)
         }
-      <% end %>
+      }
     }
   <% end %>
 }
