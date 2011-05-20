@@ -38,11 +38,17 @@ trait CompileThriftFinagle
       file.deleteOnExit()
       val fos = new BufferedOutputStream(new FileOutputStream(file), 1<<20)
       try {
-        var byte = stream.read()
-        while (byte != -1) {
-          fos.write(byte)
-          byte = stream.read()
+        // TODO(oliver): upgrade to 2.8 so that i can declare @scala.annotation.tailrec
+        def copy(out: java.io.OutputStream, in: java.io.InputStream) {
+          val buf = new Array[Byte](4096)
+          val len = in.read(buf)
+          if(len > 0) {
+            out.write(buf, 0, len)
+            copy(out, in)
+          }
         }
+
+        copy(fos, stream)
       } finally {
         fos.close()
       }
