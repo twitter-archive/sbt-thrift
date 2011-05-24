@@ -55,6 +55,13 @@ trait CompileThriftScala extends DefaultProject with CompileThriftRuby with Comp
     None
   }
 
+  /**
+   * Avoid the spinning ~compile
+   */
+  override def watchPaths = super.watchPaths.filter { path =>
+    !path.asFile.getAbsolutePath.contains("target/gen-")
+  }
+
   lazy val autoCompileScalaThrift = task {
     if (autoCompileThriftEnabled) {
       compileThriftScala.run
