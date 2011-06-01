@@ -42,7 +42,13 @@ module ::Thrift
     end
   end
 end
-def require(*args); end
+
+def require(*args);
+  if ["thrift"].include?(args.first)
+  else
+    Kernel::require(*args)
+  end
+end
 
 # Utility stolen from activesupport
 class String
@@ -430,6 +436,7 @@ object Constants {
 EOF
 
     # Load the thrift files
+    $: << File.expand_path(input)
     Dir["#{input}/*types.rb"].each {|f| load f }
     Dir["#{input}/*.rb"].each {|f| load f }
 
@@ -472,7 +479,7 @@ EOF
     classes.each do |name|
       obj = root.const_get(name)
       if obj.const_defined?(:Client)
-        methods = obj.const_get(:Client).instance_methods.map {|m| m.to_s[/recv_(.*)$/, 1] }.compact.map {|name|
+        methods = obj.const_get(:Client).instance_methods.map {|m| m.to_s[/send_(.{3,})$/, 1] }.compact.map {|name|
           if name
             out = MStruct.new
             out.name = name
