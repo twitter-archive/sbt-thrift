@@ -16,7 +16,9 @@ trait CompileThriftFinagle
   private[this] val _thriftBin = CompileThriftFinagle.synchronized {
     if (!cachedPath.isDefined) {
       // TODO: we don't discriminate between versions here (which we need to..).
+      val windows = "(Windows.*)".r
       val binPath = System.getProperty("os.name") match {
+        case windows(_) => "thrift.win32"
         case "Mac OS X" => "thrift.osx10.6"
         case "Linux" => System.getProperty("os.arch") match {
           case "i386" => "thrift.linux32"
