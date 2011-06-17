@@ -50,6 +50,28 @@ def require(*args);
   end
 end
 
+module Kernel
+  def const_get_recursive(name)
+    name.split("::").reject{|s| s.empty?}.inject(Kernel){|m, n| m.const_get(n) }
+  end
+end
+
+class Class
+  def const_find(name)
+    klass = self
+    while klass
+      modul = "::" + klass.name.gsub(/::\w+$/, '')
+      begin
+        return const_get_recursive(modul + "::" + name)
+      rescue
+        # continue
+      end
+      klass = klass.superclass
+    end
+    raise "couldn't find #{name} around #{self.name}"
+  end
+end
+
 # Utility stolen from activesupport
 class String
   def camelize(first_letter_in_uppercase = false)
@@ -479,12 +501,13 @@ EOF
     classes.each do |name|
       obj = root.const_get(name)
       if obj.const_defined?(:Client)
-        methods = obj.const_get(:Client).instance_methods.map {|m| m.to_s[/send_(.{3,})$/, 1] }.compact.map {|name|
+        client = obj.const_get(:Client)
+        methods = client.instance_methods.map {|m| m.to_s[/send_(.{3,})$/, 1] }.compact.map {|name|
           if name
             out = MStruct.new
             out.name = name
-            out.args = obj.const_get(name.capitalize + "_args").new.struct_fields.to_a.sort_by{|f| f.first}.map{|f| f.last }
-            out.retval = obj.const_get(name.capitalize + "_result").new.struct_fields[0]
+            out.args = client.const_find(name.capitalize + "_args").new.struct_fields.to_a.sort_by{|f| f.first}.map{|f| f.last }
+            out.retval = client.const_find(name.capitalize + "_result").new.struct_fields[0]
             out
           end
         }
