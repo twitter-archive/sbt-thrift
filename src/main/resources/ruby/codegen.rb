@@ -463,7 +463,7 @@ EOF
     Dir["#{input}/*.rb"].each {|f| load f }
 
     # Scan looking for...
-    root = eval(rnamespace)
+    root = eval(rnamespace) || Kernel
     classes = root.constants.select{|c| root.const_get(c).respond_to?(:const_defined?)}
     constants = root.constants.reject{|c| root.const_get(c).respond_to?(:const_defined?)}
 
