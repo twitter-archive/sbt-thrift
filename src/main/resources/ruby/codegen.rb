@@ -308,14 +308,14 @@ class <%=obj%>ThriftAdapter(val <%=obj.to_s.camelize%>: <%=obj%>) extends <%=tna
           case t: ScalaThriftException => throw(t.toThrift())
           case t: Throwable => {
             log.error(t, "Uncaught error handled in <%=m.name%>: %s", t)
-            throw new <%=$exception_class ? $exception_class : "TApplicationException"%>(t.getMessage)
+            throw new <%=$exception_class ? $exception_class : "TApplicationException"%>(t.getMessage)<%=".toThrift" if $exception_class %>
           }
         }
       } catch {
         case t: ScalaThriftException => throw(t.toThrift())
         case t: Throwable => {
           log.error(t, "Uncaught error caught in <%=m.name%>: %s", t)
-          throw new <%=$exception_class ? $exception_class : "TApplicationException"%>(t.getMessage)
+          throw new <%=$exception_class ? $exception_class : "TApplicationException"%>(t.getMessage)<%=".toThrift" if $exception_class %>
         }
       }
     }
@@ -339,14 +339,14 @@ class <%=obj%>ClientAdapter(val <%=obj.to_s.camelize%>: <%=tnamespace%>.<%=obj%>
           case t: ScalaThriftException => throw(t.toThrift())
           case t: Throwable => {
             log.error(t, "Uncaught error handled in <%=idiomize(m)%>: %s", t)
-            throw new <%=$exception_class ? $exception_class : "TApplicationException"%>(t.getMessage)
+            throw new <%=$exception_class ? $exception_class : "TApplicationException"%>(t.getMessage)<%=".toThrift" if $exception_class %>
           }
         }
       } catch {
         case t: ScalaThriftException => throw(t.toThrift())
         case t: Throwable => {
           log.error(t, "Uncaught error caught in <%=idiomize(m)%>: %s", t)
-          throw new <%=$exception_class ? $exception_class : "TApplicationException"%>(t.getMessage)
+          throw new <%=$exception_class ? $exception_class : "TApplicationException"%>(t.getMessage)<%=".toThrift" if $exception_class %>
         }
       }
     }
