@@ -4,6 +4,17 @@ import java.io.InputStreamReader
 import _root_.sbt._
 import org.jruby.embed._
 
+class PartiallySpecifiedNamespace(ruby: Option[String], java: Option[String]) {
+  def fromRuby(ns: String) = new PartiallySpecifiedNamespace(Some(ns), java)
+  def fromJava(ns: String) = new PartiallySpecifiedNamespace(ruby, Some(ns))
+  def toScala(ns: String) = {
+    if(!ruby.isDefined) throw new RuntimeException("Please specify the ruby namespace from your thrift file")
+    if(!java.isDefined) throw new RuntimeException("Please specify the java namespace from your thrift file")
+    new ThriftNamespace(ruby.get, java.get, ns)
+  }
+}
+
+object ThriftNamespace extends PartiallySpecifiedNamespace(None, None)
 
 case class ThriftNamespace(ruby: String, java: String, scala: String) {
   def this(ruby: String, scala: String) = this(ruby, "%s.thrift".format(scala), scala)
