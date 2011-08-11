@@ -15,19 +15,19 @@ object CompileThrift {
 trait CompileThrift extends DefaultProject with GeneratedSources {
   import CompileThrift._
 
-  private[this] val _thriftBin = CompileThrift.synchronized {
+  private[this] val _thriftBinFinagle = CompileThrift.synchronized {
     if (!cachedPath.isDefined) {
       // TODO: we don't discriminate between versions here (which we need to..).
       val binPath = System.getProperty("os.name") match {
-        case "Mac OS X" => "thrift.osx10.6"
+        case "Mac OS X" => "thrift-finagle.osx10.6"
         case "Linux" => System.getProperty("os.arch") match {
-          case "i386" => "thrift.linux32"
-          case "amd64" => "thrift.linux64"
+          case "i386" => "thrift-finagle.linux32"
+          case "amd64" => "thrift-finagle.linux64"
           case arch => throw new Exception(
             "No thrift linux binary for %s, talk to william@twitter.com".format(arch))
         }
         case "FreeBSD" => System.getProperty("os.arch") match {
-          case "amd64" => "thrift.bsd64"
+          case "amd64" => "thrift-finagle.bsd64"
           case arch => throw new Exception(
             "No thrift BSD binary for %s, talk to brandon@twitter.com".format(arch))
         }
@@ -65,7 +65,7 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
     cachedPath.get
   }
 
-  def thriftBin = _thriftBin
+  def thriftBinFinagle = _thriftBinFinagle
 
   def thriftSources = (mainSourcePath / "thrift" ##) ** "*.thrift"
 
@@ -84,7 +84,7 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
     }.mkString(" ")
 
     val tasks = thriftSources.getPaths.map { path =>
-      execTask { "%s %s --gen %s -o %s %s".format(thriftBin, thriftIncludes, lang, outputPath.absolutePath, path) }
+      execTask { "%s %s --gen %s -o %s %s".format(thriftBinFinagle, thriftIncludes, lang, outputPath.absolutePath, path) }
     }
     if (tasks.isEmpty) None else tasks.reduceLeft { _ && _ }.run
   } describedAs("Compile thrift into %s".format(lang))
