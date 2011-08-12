@@ -15,7 +15,7 @@ object CompileThrift {
 trait CompileThrift extends DefaultProject with GeneratedSources {
   import CompileThrift._
 
-  private[this] val platform =  System.getProperty("os.name") match {
+  private[this] lazy val platform =  System.getProperty("os.name") match {
     case "Mac OS X" => "osx10.6"
     case "Linux" => System.getProperty("os.arch") match {
       case "i386" => "linux32"
@@ -33,34 +33,33 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
   }
 
   private[this] def extractBinary(binPath: String) = {
-    println("/thrift/%s".format(binPath))
-      val stream = getClass.getResourceAsStream("/thrift/%s".format(binPath))
-      val file = File.createTempFile(binPath, "")
-      file.deleteOnExit()
-      val fos = new BufferedOutputStream(new FileOutputStream(file), 1<<20)
-      try {
-        // TODO(oliver): upgrade to 2.8 so that i can declare @scala.annotation.tailrec
-        def copy(out: java.io.OutputStream, in: java.io.InputStream) {
-          val buf = new Array[Byte](4096)
-          val len = in.read(buf)
-          if(len > 0) {
-            out.write(buf, 0, len)
-            copy(out, in)
-          }
+    val stream = getClass.getResourceAsStream("/thrift/%s".format(binPath))
+    val file = File.createTempFile(binPath, "")
+    file.deleteOnExit()
+    val fos = new BufferedOutputStream(new FileOutputStream(file), 1<<20)
+    try {
+      // TODO(oliver): upgrade to 2.8 so that i can declare @scala.annotation.tailrec
+      def copy(out: java.io.OutputStream, in: java.io.InputStream) {
+        val buf = new Array[Byte](4096)
+        val len = in.read(buf)
+        if(len > 0) {
+          out.write(buf, 0, len)
+          copy(out, in)
         }
-
-        copy(fos, stream)
-      } finally {
-        fos.close()
       }
 
-      import Process._
-      val path = file.getAbsolutePath()
-      (execTask { "chmod 0500 %s".format(path) }).run
-      path
+      copy(fos, stream)
+    } finally {
+      fos.close()
+    }
+
+    import Process._
+    val path = file.getAbsolutePath()
+    (execTask { "chmod 0500 %s".format(path) }).run
+    path
   }
 
-  private[this] val _thriftBinFinagle = CompileThrift.synchronized {
+  private[this] lazy val _thriftBinFinagle = CompileThrift.synchronized {
     if (!cachedFinaglePath.isDefined) {
       cachedFinaglePath = Some(extractBinary("thrift-finagle." + platform))
     }
@@ -70,7 +69,7 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
 
   def thriftBinFinagle = _thriftBinFinagle
 
-  private[this] val _thriftBinVanilla = CompileThrift.synchronized {
+  private[this] lazy val _thriftBinVanilla = CompileThrift.synchronized {
     if (!cachedVanillaPath.isDefined) {
       cachedVanillaPath = Some(extractBinary("thrift." + platform))
     }
