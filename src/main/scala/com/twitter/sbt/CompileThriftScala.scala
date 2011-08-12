@@ -26,7 +26,7 @@ case class ThriftNamespace(ruby: String, java: String, scala: String) {
  * called "quack", that has an extremely heinous thrift IDL, which exercises every thrift type
  * (with nesting and structs).  Grab it and compile it, to make sure this still works :).
  */
-trait CompileThriftScala extends DefaultProject with CompileThriftRuby with CompileThriftFinagle {
+trait CompileThriftScala extends DefaultProject with CompileThriftFinagle with CompileThriftRuby {
   @Deprecated
   def scalaThriftTargetNamespace: String =
     throw new RuntimeException("Please override def scalaThriftTargetNamespace or thriftNamespaces (latter preferred)")

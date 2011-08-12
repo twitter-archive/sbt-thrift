@@ -12,7 +12,6 @@ object CompileThrift {
   var cachedVanillaPath: Option[String] = None
 }
 
-
 trait CompileThrift extends DefaultProject with GeneratedSources {
   import CompileThrift._
 
@@ -37,7 +36,7 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
       }
 
       val stream = getClass.getResourceAsStream("/thrift/%s".format(binPath))
-      val file = File.createTempFile("thrift", "scala")
+      val file = File.createTempFile("thrift-finagle", "scala")
       file.deleteOnExit()
       val fos = new BufferedOutputStream(new FileOutputStream(file), 1<<20)
       try {
@@ -117,7 +116,7 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
     cachedVanillaPath.get
   }
 
-  def thriftBinVanilla = _thriftBinFinagle
+  def thriftBinVanilla = _thriftBinVanilla
 
   def thriftSources = (mainSourcePath / "thrift" ##) ** "*.thrift"
 
@@ -136,8 +135,9 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
     }.mkString(" ")
 
     val tasks = thriftSources.getPaths.map { path =>
-      execTask { "%s %s --gen %s -o %s %s".format(thriftBinFinagle, thriftIncludes, lang, outputPath.absolutePath, path) }
+      execTask { "%s %s --gen %s -o %s %s".format(thriftBinVanilla, thriftIncludes, lang, outputPath.absolutePath, path) }
     }
     if (tasks.isEmpty) None else tasks.reduceLeft { _ && _ }.run
   } describedAs("Compile thrift into %s".format(lang))
+
 }

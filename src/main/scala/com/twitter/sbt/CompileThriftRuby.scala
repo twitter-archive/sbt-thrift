@@ -2,7 +2,6 @@ package com.twitter.sbt
 
 import _root_.sbt._
 
-
 trait CompileThriftRuby extends CompileThrift {
   lazy val compileThriftRuby = compileThriftAction("rb")
 
