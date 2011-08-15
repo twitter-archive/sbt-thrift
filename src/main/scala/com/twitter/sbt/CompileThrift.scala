@@ -59,25 +59,15 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
     path
   }
 
-  private[this] lazy val _thriftBinFinagle = CompileThrift.synchronized {
-    if (!cachedFinaglePath.isDefined) {
-      cachedFinaglePath = Some(extractBinary("thrift-finagle." + platform))
-    }
+  private[this] lazy val thriftBinFinagle = CompileThrift.synchronized {
 
-    cachedFinaglePath.get
-  }
-
-  def thriftBinFinagle = _thriftBinFinagle
-
-  private[this] lazy val _thriftBinVanilla = CompileThrift.synchronized {
+  private[this] lazy val thriftBinVanilla = CompileThrift.synchronized {
     if (!cachedVanillaPath.isDefined) {
       cachedVanillaPath = Some(extractBinary("thrift." + platform))
     }
 
     cachedVanillaPath.get
   }
-
-  def thriftBinVanilla = _thriftBinVanilla
 
   def thriftSources = (mainSourcePath / "thrift" ##) ** "*.thrift"
 
