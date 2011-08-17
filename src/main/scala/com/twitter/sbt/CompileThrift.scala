@@ -61,7 +61,7 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
 
   lazy val thriftBinFinagle = CompileThrift.synchronized {
     if (!cachedFinaglePath.isDefined) {
-      cachedFinaglePath = Some(extractBinary("thrift." + platform))
+      cachedFinaglePath = Some(extractBinary("thrift-finagle." + platform))
     }
 
     cachedFinaglePath.get
