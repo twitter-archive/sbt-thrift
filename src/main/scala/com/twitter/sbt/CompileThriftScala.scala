@@ -82,10 +82,6 @@ trait CompileThriftScala extends DefaultProject with CompileThriftFinagle with C
     None
   }.dependsOn(autoCompileThriftRuby)
 
-  def generatedScalaDirectoryName = "gen-scala"
-  def generatedScalaPath = outputPath / generatedScalaDirectoryName
-
   override def mainSourceRoots = super.mainSourceRoots +++ (outputPath / generatedScalaDirectoryName ##)
   override def compileAction = super.compileAction dependsOn(autoCompileScalaThrift)
-  override def cleanAction = super.cleanAction dependsOn(cleanTask(generatedScalaPath))
 }
