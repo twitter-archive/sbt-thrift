@@ -257,6 +257,7 @@ import com.twitter.logging.Logger
 import com.twitter.ostrich.admin.Service
 import com.twitter.util._
 import com.twitter.sbt.thrift._
+import com.twitter.finagle.stats.OstrichStatsReceiver
 
 trait <%=obj%> {
   implicit def voidUnit(f: Future[_]): Future[java.lang.Void] = f.map(x=>null)

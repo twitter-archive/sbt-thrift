@@ -8,3 +8,6 @@ src/main/scala/com/twitter/sbt/BuildInfo.scala
 /standard-project.tmproj
 *.iml
 .idea
+.ensime
+.ensime.msg.counter
+ensime_port
