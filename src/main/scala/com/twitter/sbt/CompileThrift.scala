@@ -83,7 +83,8 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
   def thriftIncludeFolders: Seq[String] = Nil
 
   // thrift generation.
-  def compileThriftAction(lang: String) = task {
+  def compileThriftAction(lang: String): Task = compileThriftAction(lang, Seq())
+  def compileThriftAction(lang: String, exclusions: Seq[String]) = task {
     import Process._
     outputPath.asFile.mkdirs()
 
@@ -91,7 +92,9 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
       "-I " + new File(folder).getAbsolutePath
     }.mkString(" ")
 
-    val tasks = thriftSources.getPaths.map { path =>
+    val tasks = exclusions.foldLeft(thriftSources) { (finder, name) =>
+      finder --- (mainSourcePath / "thrift" / (name + ".thrift"))
+    }.getPaths.map { path =>
       execTask { "%s %s --gen %s -o %s %s".format(thriftBinVanilla, thriftIncludes, lang, outputPath.absolutePath, path) }
     }
     if (tasks.isEmpty) None else tasks.reduceLeft { _ && _ }.run
