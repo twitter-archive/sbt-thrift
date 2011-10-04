@@ -3,36 +3,27 @@ package com.twitter.sbt
 import _root_.sbt._
 import Process._
 
-class ThriftGemFactory(
+trait ThriftGemFactory {
+  val name: String
+  val namespace: String
+  val service: String
+  val description: String
+  val authors: Seq[(String, String)]
+  val homepage: String
+  val repository: GemRepository = TwitterGem
+  val thriftExclusions: Seq[String] = Seq()
+
+  def apply(mainPath: Path, outputPath: Path, files: scala.collection.Set[Path], version: Version, log: Logger) =
+    new ThriftGem(name, namespace, service, description, authors, homepage, repository, mainPath, outputPath, files, version, log)
+}
+
+class ThriftGem(
   name: String,
   namespace: String,
   service: String,
   desc: String,
   authors: Seq[(String,String)],
   url: String,
-  repository: GemRepository,
-  val thriftExclusions: Seq[String]
-) {
-  def this(name: String, namespace: String, service: String, desc: String, authors: Seq[(String, String)], url: String, thriftExclusions: Seq[String]) =
-    this(name, namespace, service, desc, authors, url, TwitterGem, thriftExclusions)
-
-  def this(name: String, namespace: String, service: String, desc: String, authors: Seq[(String, String)], url: String) =
-    this(name, namespace, service, desc, authors, url, TwitterGem, Seq())
-
-  def this(name: String, namespace: String, service: String, desc: String, authors: Seq[(String, String)], url: String, repository: GemRepository) =
-    this(name, namespace, service, desc, authors, url, repository, Seq())
-
-  def apply(mainPath: Path, outputPath: Path, files: scala.collection.Set[Path], version: Version, log: Logger) =
-    new ThriftGem(name, namespace, service, desc, authors, url, repository, mainPath, outputPath, files, version, log)
-}
-
-class ThriftGem(
-  val name: String,
-  val namespace: String,
-  val service: String,
-  val desc: String,
-  val authors: Seq[(String,String)],
-  val url: String,
   repository: GemRepository,
   mainSourcePath: Path,
   outputPath: Path,
@@ -47,7 +38,7 @@ class ThriftGem(
   val mainTestPath = basePath / "test"
   val testPath = mainTestPath / name
   val targetPath = outputPath / "gem"
-  val gemName = name+"-"+version.toString.replaceAll("-SNAPSHOT","")
+  val gemName = name + "-" + version.toString.replaceAll("-SNAPSHOT","")
 
   def setup() = {
     FileUtilities.createDirectory(targetPath, log)
@@ -59,7 +50,7 @@ class ThriftGem(
   def build() = {
     copyGeneratedFiles() match {
       case None => {
-        val exitCode = Process("gem build "+name+".gemspec", basePath).run(false).exitValue()
+        val exitCode = Process("gem build " + name + ".gemspec", basePath).run(false).exitValue()
         if (exitCode == 0) {
           (basePath / (gemName + ".gem")).asFile.renameTo((targetPath / (gemName + ".gem")).asFile)
           None
@@ -72,7 +63,7 @@ class ThriftGem(
   }
 
   def release() =
-    repository.release(gemName+".gem", targetPath, log)
+    repository.release(gemName + ".gem", targetPath, log)
 
   private[this] def buildDirStructure() {
     log.info("Creating directory structure")
@@ -107,14 +98,14 @@ class ThriftGem(
 
     FileUtilities.write(
       (libPath / "thrift.rb").asFile,
-      gemThriftFiles.map { f => "require '"+name+"/thrift/"+f.getName.replaceAll("\\.rb","")+"'" }.mkString("\n"),
+      gemThriftFiles.map { f => "require '" + name + "/thrift/" + f.getName.replaceAll("\\.rb","") + "'" }.mkString("\n"),
       log
     )
   }
 
   private[this] def fixRequires(str: String) = {
     str.split("\n") filter { l => l != "require 'thrift'" } map { line =>
-      line.replaceAll("^require '", "require '"+name+"/thrift/")
+      line.replaceAll("^require '", "require '" + name + "/thrift/")
     } mkString("\n")
   }
 
@@ -210,8 +201,8 @@ end
     if (!gemspec.isFile) {
       val template = gemspecTemplate
         .replaceAll("@NAME@", name)
-        .replaceAll("@AUTHORNAMES@", authors.map { case (name,_) => "%q{"+name+"}" }.mkString(","))
-        .replaceAll("@AUTHOREMAILS@", authors.map { case (_,email) => "%q{"+email+"}" }.mkString(","))
+        .replaceAll("@AUTHORNAMES@", authors.map { case (name,_) => "%q{" + name + "}" }.mkString(","))
+        .replaceAll("@AUTHOREMAILS@", authors.map { case (_,email) => "%q{" + email + "}" }.mkString(","))
         .replaceAll("@HOMEPAGE@", url)
         .replaceAll("@DESCRIPTION@", desc)
 
@@ -222,7 +213,7 @@ end
     val mainFiles = Seq("thrift", "client", "mock_service", "service")
     FileUtilities.write(
       (mainLibPath / (name + ".rb")).asFile,
-      mainFiles.map { f => "require '"+name+"/"+f+"'" }.mkString("\n"), log)
+      mainFiles.map { f => "require '" + name + "/" + f + "'" }.mkString("\n"), log)
 
     // ignore files in the thrift dir
     val thriftIgnore = (thriftPath / ".gitignore").asFile
@@ -244,26 +235,23 @@ object TwitterGem extends GemRepository {
   private[this] val uploadTemplate =
     """require 'rubygems'
     require 'ods_credentials'
-    = Class.new { extend ODSCredentials }.get_keychain_data.join(':').gsub('!', '\!')
+    creds = Class.new { extend ODSCredentials }.get_keychain_data.join(':').gsub('!', '\!')
     system("curl -H\"Expect: \" -F\"file=@#{ARGV[0]}\" -u#{creds} http://gems.local.twitter.com/upload")
     """
 
   def release(gemName: String, path: Path, log: Logger) = {
     val uploadFile = (path / "upload.rb").asFile
-    if (!uploadFile.isFile)
-        FileUtilities.write(uploadFile, uploadTemplate, log)
+    if (!uploadFile.isFile) FileUtilities.write(uploadFile, uploadTemplate, log)
 
-    val exitCode = (("ruby "+uploadFile+" "+(path / gemName).absolutePath) !)
-    if (exitCode == 0) None
-    else Some("Failed to release to geminabox: "+exitCode)
+    val exitCode = (("ruby " + uploadFile + " " + (path / gemName).absolutePath) !)
+    if (exitCode == 0) None else Some("Failed to release to geminabox: " + exitCode)
   }
 }
 
 object RubygemGem extends GemRepository {
   def release(gemName: String, path: Path, log: Logger) = {
-    val exitCode = (("gem push "+(path / gemName).absolutePath) !)
-    if (exitCode == 0) None
-    else Some("Failed to release to RubyGems: "+exitCode)
+    val exitCode = (("gem push " + (path / gemName).absolutePath) !)
+    if (exitCode == 0) None else Some("Failed to release to RubyGems: " + exitCode)
   }
 }
 
