@@ -14,7 +14,7 @@ trait ThriftGemFactory {
   val testFramework: Option[GemTestFramework] = None
   val thriftExclusions: Seq[String] = Seq()
 
-  def apply(mainPath: Path, outputPath: Path, files: scala.collection.Set[Path], version: Version, log: Logger) =
+  def apply(mainPath: Path, outputPath: Path, files: PathFinder, version: Version, log: Logger) =
     new ThriftGem(name, namespace, service, description, authors, homepage, repository, testFramework,
                   mainPath, outputPath, files, version, log)
 }
@@ -30,7 +30,7 @@ class ThriftGem(
   testFramework: Option[GemTestFramework],
   mainSourcePath: Path,
   outputPath: Path,
-  generatedRubyFiles: scala.collection.Set[Path],
+  generatedRubyFiles: PathFinder,
   version: Version,
   log: Logger
 ) {
@@ -78,7 +78,7 @@ class ThriftGem(
   private[this] def copyGeneratedFiles() = {
     log.info("Setup thrift generated files")
     val gemThriftFiles = new mutable.ArrayBuffer[File]()
-    generatedRubyFiles foreach { path =>
+    generatedRubyFiles.get foreach { path =>
       val readFile = path.asFile
       FileUtilities.readString(readFile, log) match {
         case Left(err) => Some(err)
@@ -315,7 +315,7 @@ end"""
 trait ThriftGemerator extends CompileThriftRuby {
   def gemFactory: ThriftGemFactory
 
-  lazy val gem = gemFactory(mainSourcePath, outputPath, (generatedRubyPath * "*.rb").get, version, log)
+  lazy val gem = gemFactory(mainSourcePath, outputPath, (generatedRubyPath * "*.rb"), version, log)
 
   override lazy val compileThriftRuby = compileThriftAction("rb", gemFactory.thriftExclusions)
 
