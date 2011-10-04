@@ -53,6 +53,7 @@ class ThriftGem(
       case None => {
         val exitCode = (Process("gem build " + name + ".gemspec", basePath) !)
         if (exitCode == 0) {
+          FileUtilities.createDirectory(targetPath, log)
           (basePath / (gemName + ".gem")).asFile.renameTo((targetPath / (gemName + ".gem")).asFile)
           None
         } else {
@@ -63,11 +64,14 @@ class ThriftGem(
     }
   }
 
-  def test() =
+  def test() = {
     testFramework.map(_.test(basePath, log)).getOrElse(None)
+  }
 
-  def release() =
+  def release() = {
+    FileUtilities.createDirectory(targetPath, log)
     repository.release(gemName + ".gem", targetPath, log)
+  }
 
   import scala.collection.mutable
   import java.io.File
@@ -320,6 +324,12 @@ trait ThriftGemerator extends CompileThriftRuby {
   } describedAs("Create the gem structure")
 
   override def updateAction = gemerate dependsOn(super.updateAction)
+
+  lazy val cleanGem = (
+    cleanTask(gem.targetPath) && cleanTask(gem.thriftPath ** "*.rb")
+  ) describedAs("Clean generated gem folders")
+
+  override def cleanAction = super.cleanAction dependsOn(cleanGem)
 
   lazy val buildGem = task {
     gem.build()
