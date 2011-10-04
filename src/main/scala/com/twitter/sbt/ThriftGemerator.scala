@@ -11,10 +11,12 @@ trait ThriftGemFactory {
   val authors: Seq[(String, String)]
   val homepage: String
   val repository: GemRepository = TwitterGem
+  val testFramework: Option[GemTestFramework] = None
   val thriftExclusions: Seq[String] = Seq()
 
   def apply(mainPath: Path, outputPath: Path, files: scala.collection.Set[Path], version: Version, log: Logger) =
-    new ThriftGem(name, namespace, service, description, authors, homepage, repository, mainPath, outputPath, files, version, log)
+    new ThriftGem(name, namespace, service, description, authors, homepage, repository, testFramework,
+                  mainPath, outputPath, files, version, log)
 }
 
 class ThriftGem(
@@ -25,6 +27,7 @@ class ThriftGem(
   authors: Seq[(String,String)],
   url: String,
   repository: GemRepository,
+  testFramework: Option[GemTestFramework],
   mainSourcePath: Path,
   outputPath: Path,
   generatedRubyFiles: scala.collection.Set[Path],
@@ -35,22 +38,20 @@ class ThriftGem(
   val mainLibPath = basePath / "lib"
   val libPath = mainLibPath / name
   val thriftPath = libPath / "thrift"
-  val mainTestPath = basePath / "test"
-  val testPath = mainTestPath / name
   val targetPath = outputPath / "gem"
   val gemName = name + "-" + version.toString.replaceAll("-SNAPSHOT","")
 
   def setup() = {
-    FileUtilities.createDirectory(targetPath, log)
-    buildDirStructure()
-    createFiles()
-    None
+    createFiles() match {
+      case None => testFramework.map(_.setup(name, basePath, log)).getOrElse(None)
+      case err  => err
+    }
   }
 
   def build() = {
     copyGeneratedFiles() match {
       case None => {
-        val exitCode = Process("gem build " + name + ".gemspec", basePath).run(false).exitValue()
+        val exitCode = (Process("gem build " + name + ".gemspec", basePath) !)
         if (exitCode == 0) {
           (basePath / (gemName + ".gem")).asFile.renameTo((targetPath / (gemName + ".gem")).asFile)
           None
@@ -62,21 +63,11 @@ class ThriftGem(
     }
   }
 
+  def test() =
+    testFramework.map(_.test(basePath, log)).getOrElse(None)
+
   def release() =
     repository.release(gemName + ".gem", targetPath, log)
-
-  private[this] def buildDirStructure() {
-    log.info("Creating directory structure")
-    val dirs = Seq(
-      basePath,
-      mainLibPath,
-      libPath,
-      thriftPath,
-      mainTestPath,
-      testPath
-    )
-    FileUtilities.createDirectories(dirs, log)
-  }
 
   import scala.collection.mutable
   import java.io.File
@@ -127,9 +118,7 @@ end
 """
 
   private[this] val serviceTemplate =
-"""require 'thrift_client'
-
-module @NAMESPACE@
+"""module @NAMESPACE@
   class Service < ThriftClient
     def initialize(servers = nil, options = {})
       servers = if servers.nil? || servers.empty?
@@ -167,7 +156,10 @@ Gem::Specification.new do |s|
 end
 """
 
-  private[this] def createFiles() {
+  private[this] def createFiles() = {
+    log.info("Creating directory structure")
+    val dirs = Seq(basePath, mainLibPath, libPath, thriftPath, targetPath)
+    FileUtilities.createDirectories(dirs, log)
     log.info("Creating skeleton gem")
     FileUtilities.touch(mainLibPath / (name + ".rb"), log)
 
@@ -210,20 +202,17 @@ end
     }
 
     // thrift.rb (requires all the generated thrift)
-    val mainFiles = Seq("thrift", "client", "mock_service", "service")
+    val mainFiles = Seq("thrift_client") ++ Seq("thrift", "client", "mock_service", "service").map(name + "/" + _)
     FileUtilities.write(
       (mainLibPath / (name + ".rb")).asFile,
-      mainFiles.map { f => "require '" + name + "/" + f + "'" }.mkString("\n"), log)
+      mainFiles.map { f => "require '" + f + "'" }.mkString("\n"), log)
 
     // ignore files in the thrift dir
     val thriftIgnore = (thriftPath / ".gitignore").asFile
     if (!thriftIgnore.isFile)
       FileUtilities.write(thriftIgnore, "*.rb", log)
 
-    FileUtilities.touch(mainTestPath / (name + "_test_helpers.rb"), log)
-    List("client_test.rb", "mock_service_test.rb") foreach { file =>
-      FileUtilities.touch(testPath / file, log)
-    }
+    None
   }
 }
 
@@ -255,6 +244,70 @@ object RubygemGem extends GemRepository {
   }
 }
 
+trait GemTestFramework {
+  def test(basePath: Path, log: Logger): Option[String]
+  def setup(name: String, basePath: Path, log: Logger): Option[String]
+}
+
+object GemMinitest extends GemTestFramework {
+  private[this] val rakefileTemplate =
+    """
+require 'rake/testtask'
+
+Rake::TestTask.new(:test) do |test|
+  test.libs << 'test'
+  test.pattern = 'test/**/test_*.rb'
+  test.verbose = true
+end"""
+
+  private[this] val helperTemplate =
+    """require 'rubygems'
+require 'minitest/unit'
+require 'minitest/mock'
+
+require '@NAME@'
+
+MiniTest::Unit.autorun
+"""
+
+  private[this] val mockTemplate =
+    """require '@NAME@_test_helper'
+
+class MockServiceTest < MiniTest::Unit::TestCase
+end"""
+
+  private[this] val clientTemplate =
+    """require '@NAME@_test_helper'
+
+class ClientTest < MiniTest::Unit::TestCase
+end"""
+
+  def test(basePath: Path, log: Logger) = {
+    val exitCode = (Process("rake test", basePath) !)
+    if (exitCode == 0) None else Some("Gem tests failed")
+  }
+
+  def setup(name: String, basePath: Path, log: Logger) = {
+    val rakefile = (basePath / "Rakefile").asFile
+    if (!rakefile.isFile) FileUtilities.write(rakefile, rakefileTemplate, log)
+
+    val mainTestPath = basePath / "test"
+    val testPath = mainTestPath / name
+    FileUtilities.createDirectories(Seq(mainTestPath, testPath), log)
+
+    val helper = (mainTestPath / (name + "_test_helper.rb")).asFile
+    if (!helper.isFile) FileUtilities.write(helper, helperTemplate.replaceAll("@NAME@", name), log)
+
+    val mockTest = (testPath / "test_mock_service.rb").asFile
+    if (!mockTest.isFile) FileUtilities.write(mockTest, mockTemplate.replaceAll("@NAME@", name), log)
+
+    val clientTest = (testPath / "test_client.rb").asFile
+    if (!clientTest.isFile) FileUtilities.write(clientTest, clientTemplate.replaceAll("@NAME@", name), log)
+
+    None
+  }
+}
+
 trait ThriftGemerator extends CompileThriftRuby {
   def gemFactory: ThriftGemFactory
 
@@ -272,7 +325,11 @@ trait ThriftGemerator extends CompileThriftRuby {
     gem.build()
   } dependsOn(compileThriftRuby) describedAs("Build the gem")
 
+  lazy val testGem = task {
+    gem.test()
+  } dependsOn(buildGem) describedAs("Run the gem's test suite")
+
   lazy val releaseGem = task {
     gem.release()
-  } dependsOn(buildGem) describedAs("Release gem")
+  } dependsOn(testGem) describedAs("Release gem")
 }
