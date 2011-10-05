@@ -151,8 +151,8 @@ Gem::Specification.new do |s|
   s.summary     = %q{@DESCRIPTION@}
   s.description = s.summary
 
-  s.files         = `ls lib/**/*.rb`.split("\n") + `ls lib/*.rb`.split("\n")
-  s.test_files    = `ls test/**/*.rb`.split("\n") + `ls test/*.rb`.split("\n")
+  s.files         = Dir["lib/**/*.rb"].to_a
+  s.test_files    = Dir["test/**/*.rb"].to_a + Dir["spec/**/*.rb"].to_a
 
   s.require_paths = ["lib"]
 
