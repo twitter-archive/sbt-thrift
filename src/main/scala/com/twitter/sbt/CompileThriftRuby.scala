@@ -9,7 +9,7 @@ trait CompileThriftRuby extends CompileThrift {
     if (autoCompileThriftEnabled) {
       compileThriftRuby.run
     } else {
-      log.info("%s: not auto-compiling thrift-ruby; you may need to run compile-thrift-java manually".format(name))
+      log.info("%s: not auto-compiling thrift-ruby; you may need to run compile-thrift-ruby manually".format(name))
       None
     }
   }
