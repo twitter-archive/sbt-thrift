@@ -206,10 +206,13 @@ end
     }
 
     // thrift.rb (requires all the generated thrift)
-    val mainFiles = Seq("thrift_client") ++ Seq("thrift", "client", "mock_service", "service").map(name + "/" + _)
-    FileUtilities.write(
-      (mainLibPath / (name + ".rb")).asFile,
-      mainFiles.map { f => "require '" + f + "'" }.mkString("\n"), log)
+    val mainFile = (mainLibPath / (name + ".rb")).asFile
+    if (!mainFile.isFile) {
+      val mainFiles = Seq("thrift_client") ++ Seq("thrift", "client", "mock_service", "service").map(name + "/" + _)
+      FileUtilities.write(
+        mainFile,
+        mainFiles.map { f => "require '" + f + "'" }.mkString("\n"), log)
+    }
 
     // ignore files in the thrift dir
     val thriftIgnore = (thriftPath / ".gitignore").asFile
