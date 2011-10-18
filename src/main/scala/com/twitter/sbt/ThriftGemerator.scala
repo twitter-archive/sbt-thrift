@@ -10,9 +10,9 @@ trait ThriftGemFactory {
   val description: String
   val authors: Seq[(String, String)]
   val homepage: String
-  val repository: GemRepository = TwitterGem
-  val testFramework: Option[GemTestFramework] = None
-  val thriftExclusions: Seq[String] = Seq()
+  var repository: GemRepository = TwitterGem
+  var testFramework: Option[GemTestFramework] = None
+  var thriftExclusions: Seq[String] = Seq()
 
   def apply(mainPath: Path, outputPath: Path, files: PathFinder, version: Version, log: Logger) =
     new ThriftGem(name, namespace, service, description, authors, homepage, repository, testFramework,
@@ -228,19 +228,39 @@ trait GemRepository {
 }
 
 object TwitterGem extends GemRepository {
-  private[this] val uploadTemplate =
-    """require 'rubygems'
-    require 'ods_credentials'
-    creds = Class.new { extend ODSCredentials }.get_keychain_data.join(':').gsub('!', '\!')
-    system("curl -H\"Expect: \" -F\"file=@#{ARGV[0]}\" -u#{creds} http://gems.local.twitter.com/upload")
-    """
+  val uploadUrl = "http://gems.local.twitter.com/upload"
+
+  private val prefs = new Properties()
+  val prefsFilename = System.getProperty("user.home") + "/.geminabox"
+
+  private val loaded = try {
+    prefs.load(new FileReader(prefsFilename))
+    true
+  } catch {
+    case e: Exception =>
+      false
+  }
+
+  private lazy val credentials = {
+    if (loaded) {
+      val username = prefs.getProperty("username")
+      val password = prefs.getProperty("password")
+      Some((username, password))
+    } else {
+      None
+    }
+  }
 
   def release(gemName: String, path: Path, log: Logger) = {
-    val uploadFile = (path / "upload.rb").asFile
-    if (!uploadFile.isFile) FileUtilities.write(uploadFile, uploadTemplate, log)
-
-    val exitCode = (("ruby " + uploadFile + " " + (path / gemName).absolutePath) !)
-    if (exitCode == 0) None else Some("Failed to release to geminabox: " + exitCode)
+    credentials match {
+      case None             => Some("Could not gather credentials from ~/.geminabox")
+      case Some((user, pw)) => {
+        val gemPath = (path / gemName).absolutePath
+        val cmd = Seq("curl", "-H", "Expect: ", "-F", "file=@"+gemPath, "-u", user+":"+pw, uploadUrl)
+        val exitCode = (cmd !)
+        if (exitCode == 0) None else Some("Failed to release to geminabox: " + exitCode)
+      }
+    }
   }
 }
 
