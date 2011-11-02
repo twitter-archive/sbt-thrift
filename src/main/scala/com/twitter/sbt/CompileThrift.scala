@@ -8,12 +8,16 @@ import java.io.{File, FileOutputStream, BufferedOutputStream}
 
 // TODO support multiple thrift versions
 object CompileThrift {
-  var cachedFinaglePath: Option[String] = None
-  var cachedVanillaPath: Option[String] = None
+  var cachedThriftPath: Option[(String, String)] = None
 }
 
 trait CompileThrift extends DefaultProject with GeneratedSources {
   import CompileThrift._
+
+  private[this] val env = jcl.Map(System.getenv())
+
+  // name of the thrift binary
+  lazy val thriftname = "thrift"
 
   private[this] lazy val platform =  System.getProperty("os.name") match {
     case "Mac OS X" => "osx10.6"
@@ -59,21 +63,19 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
     path
   }
 
-  lazy val thriftBinFinagle = CompileThrift.synchronized {
-    if (!cachedFinaglePath.isDefined) {
-      cachedFinaglePath = Some(extractBinary("thrift-finagle." + platform))
+  lazy val thriftBin = env.get("SBT_THRIFT_BIN") getOrElse
+    CompileThrift.synchronized {
+      val cached = for {
+        (cachedThrift, cachedPath) <- cachedThriftPath
+        if cachedThrift == thriftname
+      } yield cachedPath
+
+      cached getOrElse {
+        val path = extractBinary(thriftname + "." + platform)
+        cachedThriftPath = Some((thriftname, path))
+        path
+      }
     }
-
-    cachedFinaglePath.get
-  }
-
-  lazy val thriftBinVanilla = CompileThrift.synchronized {
-    if (!cachedVanillaPath.isDefined) {
-      cachedVanillaPath = Some(extractBinary("thrift." + platform))
-    }
-
-    cachedVanillaPath.get
-  }
 
   def thriftSources = (mainSourcePath / "thrift" ##) ** "*.thrift"
 
@@ -95,8 +97,18 @@ trait CompileThrift extends DefaultProject with GeneratedSources {
     val tasks = exclusions.foldLeft(thriftSources) { (finder, name) =>
       finder --- (mainSourcePath / "thrift" / (name + ".thrift"))
     }.getPaths.map { path =>
-      execTask { "%s %s --gen %s -o %s %s".format(thriftBinVanilla, thriftIncludes, lang, outputPath.absolutePath, path) }
+      execTask { "%s %s --gen %s -o %s %s".format(thriftBin, thriftIncludes, lang, outputPath.absolutePath, path) }
     }
     if (tasks.isEmpty) None else tasks.reduceLeft { _ && _ }.run
   } describedAs("Compile thrift into %s".format(lang))
+
+  lazy val compileThriftJava = compileThriftAction("java")
+  lazy val autoCompileThriftJava = task {
+    if (autoCompileThriftEnabled) {
+      compileThriftJava.run
+    } else {
+      log.info("%s: not auto-compiling thrift-java; you may need to run compile-thrift-java manually".format(name))
+      None
+    }
+  }
 }
