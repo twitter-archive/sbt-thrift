@@ -1,3 +1,9 @@
+# 2.1.0
+
+* Previously, all exceptions were caught and returned to the client as
+TApplicationExceptions. Now, only exceptions declared in the .thrift file are
+caught. Others will propagate as Future.exceptions.
+
 # 2.0.0
 
 * bundle non-finagle thrift binaries
