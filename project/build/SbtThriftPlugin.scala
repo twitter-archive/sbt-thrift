@@ -7,7 +7,7 @@ class SbtThriftPlugin(info: ProjectInfo) extends PluginProject(info)
 
   val jruby = "org.jruby" % "jruby-complete" % "1.6.0.RC2"
 
-  override def subversionRepository = Some("http://svn.local.twitter.com/maven-public")
+  override def subversionRepository = Some("http://svn.twitter.biz/maven-public")
   override def managedStyle = ManagedStyle.Maven
   def snapshotDeployRepo = "libs-snapshots-local"
   def releaseDeployRepo = "libs-releases-local"
