@@ -1,11 +1,12 @@
 package com.twitter.sbt
 
-import _root_.sbt._
-import java.io.File
+import sbt._
+import Keys._
 
-trait CompileThriftFinagle
-  extends DefaultProject with CompileThrift
-{
-  override lazy val thriftname = "thrift-finagle"
-  override def compileAction = super.compileAction dependsOn(autoCompileThriftJava)
+object CompileThriftFinagle extends Plugin {
+  import CompileThrift._
+
+  val newSettings = CompileThrift.newSettings ++ Seq(
+    thriftName := "thrift-finagle"
+  )
 }
