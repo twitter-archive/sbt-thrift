@@ -5,7 +5,7 @@ class SbtThriftPlugin(info: ProjectInfo) extends PluginProject(info)
     with StandardManagedProject with DefaultRepos with SubversionPublisher {
   override def disableCrossPaths = true
 
-  val jruby = "org.jruby" % "jruby-complete" % "1.6.0.RC2"
+  val jruby = "org.jruby" % "jruby-complete" % "1.6.1"
 
   override def subversionRepository = Some("https://svn.twitter.biz/maven-public")
   override def managedStyle = ManagedStyle.Maven
